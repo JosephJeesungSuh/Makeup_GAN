@@ -1,12 +1,11 @@
-import cv2
 import glob
 import os
 import pathlib
 import random
-from typing import List, Tuple, Any
+from typing import List
 
 import torch
-from torchvision import datasets, transforms
+from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 import numpy as np
@@ -32,10 +31,10 @@ class Makeup_dataset(Dataset):
             for image_path in self.ref_files
         ]
 
-    def __getitem__(self):
+    def __getitem__(self, index):
         """ Get a pair of random images drawn from source and reference bank. """
-        src_idx = random.choice(range(len(self.src_files)))
-        ref_idx = random.choice(range(len(self.ref_files)))
+        src_idx = random.choice(range(len(self.src_files))) # just random index worked.
+        ref_idx = random.choice(range(len(self.ref_files))) # just random index worked.
         src_mask = Image.open(self.src_mask_files[src_idx]).convert("RGB")
         ref_mask = Image.open(self.ref_mask_files[ref_idx]).convert("RGB")
         src_img = Image.open(self.src_files[src_idx]).convert("RGB")
