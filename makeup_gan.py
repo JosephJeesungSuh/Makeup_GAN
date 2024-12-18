@@ -11,15 +11,19 @@ from tqdm import tqdm
 from network_blocks import Generator, Discriminator
 from utils import num_param, histogram_matching, bbox
 
-LIP = torch.tensor([7,9])
-SKIN = torch.tensor([1,6,13])
+LIP = torch.tensor([7,9], device='cuda')
+SKIN = torch.tensor([1,6,13], device='cuda')
 LEYE = 4
 REYE = 5
 
 def init_weights(module):
     """ Initialize weights for convolutional layers. """
-    if isinstance(module, nn.Conv2d) or isinstance(module, nn.ConvTranspose2d):
-        init.xavier_normal(module.weight, gain=1.00)
+    if (
+        isinstance(module, nn.Conv2d)
+        or isinstance(module, nn.ConvTranspose2d)
+        or isinstance(module, nn.Linear)
+    ):
+        init.xavier_normal_(module.weight, gain=1.00)
         if module.bias is not None:
             init.zeros_(module.bias)   
 
@@ -183,8 +187,8 @@ class MakeupGAN:
 
                 # Generate fake images, will be used by loss computataion afterwards.
                 fake_src_img, fake_ref_img = self.generator(src_img, ref_img)
-                gen_loss_src_fake = gan_loss(self.D_src(fake_ref_img), True)
-                gen_loss_ref_fake = gan_loss(self.D_ref(fake_src_img), True)
+                gen_loss_src_fake = gan_loss(self.D_src(fake_ref_img), False)
+                gen_loss_ref_fake = gan_loss(self.D_ref(fake_src_img), False)
 
                 # Loss 3. Cycle loss
                 # now fake_src_img is makeup image, so going to second argument of generator
@@ -215,12 +219,12 @@ class MakeupGAN:
                 # Loss 5. Histogram loss (Color matching loss)
                 mask_src_lip = torch.isin(src_mask, LIP).float().cuda()
                 mask_src_skin = torch.isin(src_mask, SKIN).float().cuda()
-                mask_src_leye = bbox(torch.isin(src_mask, LEYE)).float().cuda()
-                mask_src_reye = bbox(torch.isin(src_mask, REYE)).float().cuda()
+                mask_src_leye = bbox(src_mask == LEYE).float().cuda()
+                mask_src_reye = bbox(src_mask == REYE).float().cuda()
                 mask_ref_lip = torch.isin(ref_mask, LIP).float().cuda()
                 mask_ref_skin = torch.isin(ref_mask, SKIN).float().cuda()
-                mask_ref_leye = bbox(torch.isin(ref_mask, LEYE)).float().cuda()
-                mask_ref_reye = bbox(torch.isin(ref_mask, REYE)).float().cuda()
+                mask_ref_leye = bbox(ref_mask == LEYE).float().cuda()
+                mask_ref_reye = bbox(ref_mask == REYE).float().cuda()
 
                 loss_lip = (
                     histogram_matching(fake_src_img, ref_img, mask_src_lip, mask_ref_lip)
